@@ -9,14 +9,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Todo App',
-      home: const TodoPage(),
+      home: TodoPage(),
     );
   }
 }
 
+/* ---------------- TASK MODEL ---------------- */
+class Task {
+  final String id;
+  final String title;
+  bool isDone;
+
+  Task({
+    required this.id,
+    required this.title,
+    this.isDone = false,
+  });
+}
+
+/* ---------------- TODO PAGE ---------------- */
 class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
 
@@ -25,17 +38,19 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage> {
-  List<String> tasks = [];
-  TextEditingController taskController = TextEditingController();
+  final List<Task> tasks = [];
+  final TextEditingController taskController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Todo App'),
+        title: const Text('Todo App'),
+        centerTitle: true,
       ),
       body: Column(
         children: [
+          /* -------- INPUT -------- */
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -46,30 +61,72 @@ class _TodoPageState extends State<TodoPage> {
               ),
             ),
           ),
+
+          /* -------- ADD BUTTON -------- */
           ElevatedButton(
             onPressed: () {
-              if (taskController.text.isNotEmpty) {
-                setState(() {
-                  tasks.add(taskController.text);
-                  taskController.clear();
-                });
-              }
+              final text = taskController.text.trim();
+              if (text.isEmpty) return;
+
+              setState(() {
+                tasks.add(
+                  Task(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: text,
+                  ),
+                );
+                taskController.clear();
+              });
             },
             child: const Text('Add Task'),
           ),
+
+          const SizedBox(height: 10),
+          /* -------- TASK LIST -------- */
           Expanded(
-            child: ListView.builder(
+            child: tasks.isEmpty
+                ? const Center(child: Text('No tasks yet'))
+                : ListView.builder(
               itemCount: tasks.length,
               itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(tasks[index]),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        tasks.removeAt(index);
-                      });
-                    },
+                final task = tasks[index];
+
+                return Card(
+                  key: Key(task.id),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  child: ListTile(
+                    key: Key('tile-${task.id}'),
+                    leading: Checkbox(
+                      key: Key('checkbox-${task.id}'),
+                      value: task.isDone,
+                      onChanged: (value) {
+                        setState(() {
+                          task.isDone = value ?? false;
+                        });
+                      },
+                    ),
+                    title: Text(
+                      task.title,
+                      style: TextStyle(
+                        decoration: task.isDone
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.delete,
+                        color: Colors.red,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          tasks.removeAt(index);
+                        });
+                      },
+                    ),
                   ),
                 );
               },
